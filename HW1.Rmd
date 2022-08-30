@@ -2,10 +2,23 @@
 title: "DATA608 | Knowledge and Visual Analytics"
 author: "Gabriella Martinez"
 date: "8/29/2022"
-output: html_document
+output:
+      html_document:
+        toc: yes
+        toc_float: yes
+        theme: yeti
+        highlight: kate
+        font-family: "Arial"
+        code_folding: show
 ---
 
 ## Module 1: Exploratory Data Analysis
+
+```{r}
+library(dplyr)
+library(reactable)
+```
+
 
 **Principles of Data Visualization and Introduction to ggplot2**
 
@@ -28,7 +41,57 @@ Think a bit on what these summaries mean. Use the space below to add some more r
 
 ```{r}
 # Insert your code here, create more chunks as necessary
+str(inc)
 ```
+```{r}
+state <- inc %>% 
+  select(State, City) %>%
+  group_by(State) %>% 
+  summarise(Count = length(State)) %>% 
+  arrange(desc(Count)) %>% 
+  reactable(bordered = TRUE, striped = TRUE,
+          highlight = TRUE, filterable = TRUE,  showPageSizeOptions = TRUE,
+          showPagination = TRUE, pageSizeOptions = c(5, 10, 20),
+          defaultPageSize = 5)
+
+state
+```
+
+```{r}
+ind <- inc %>% 
+  select(Industry, State) %>%
+  group_by(Industry) %>% 
+  summarise(Count = length(Industry)) %>% 
+  arrange(desc(Count)) %>% 
+  reactable(bordered = TRUE, striped = TRUE,
+          highlight = TRUE, filterable = TRUE,  showPageSizeOptions = TRUE,
+          showPagination = TRUE, pageSizeOptions = c(5, 10, 25),
+          defaultPageSize = 5)
+
+ind
+```
+
+```{r}
+revenue <- inc %>% 
+  select(Industry, Revenue) %>%
+  group_by(Industry) %>% 
+  summarise(Total_Revenue = sum(Revenue)) %>%
+  arrange(desc(Total_Revenue))
+  
+
+#revenue
+
+
+reactable(revenue, columns = list(
+  Total_Revenue = 
+    colDef(format = colFormat(prefix = "$", separators = TRUE, digits = 2))),
+    bordered = TRUE, striped = TRUE,
+    highlight = TRUE, filterable = TRUE,  showPageSizeOptions = TRUE,
+    showPagination = TRUE, pageSizeOptions = c(5, 10, 25),
+    defaultPageSize = 5)
+```
+
+
 
 ## Question 1
 
