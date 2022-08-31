@@ -14,7 +14,7 @@ output:
 
 ## Module 1: Exploratory Data Analysis
 
-```{r}
+```{r message=TRUE, warning=TRUE}
 library(dplyr)
 library(reactable)
 ```
@@ -39,10 +39,19 @@ summary(inc)
 
 Think a bit on what these summaries mean. Use the space below to add some more relevant non-visual exploratory information you think helps you understand this data:
 
+--
+
+First, I'd like to take a look at the structure of the table using the `str()` function. It looks like we have 5001 observations and 8 variables, two of which are integer type, four being character type, and two numerical type.
+
 ```{r}
 # Insert your code here, create more chunks as necessary
 str(inc)
 ```
+
+The number of companies for each state is checked by aggregating the data by state. A few things to notice from the output is that there are 52 states. Puerto Rico (PR) and Washington D.C. (DC) have been included as states. 
+
+Additionally, sorting the table in descending order, it is seen that California is the state with the highest number of growing companies with a whopping 701 companies, followed by Texas with 387, and New York with 311. Toggling the `Count` column, the states with the least number of growing companies can also be noted. Puerto Rico is at the bottom of the list with 1 company, followed by Alaska with 2, and West Virginia, also with 2.
+
 ```{r}
 state <- inc %>% 
   select(State, City) %>%
@@ -57,6 +66,8 @@ state <- inc %>%
 state
 ```
 
+In a similar fashion to above, the table is grouped by `Industry` this time to see the number of growing companies in each industry. The data is then sorted by the `Count` of the total number of growing companies. The top three industries are IT Services with 733, Business Products & Services with 482, and Advertising & Marketing with 471 companies. At the bottom are Computer Hardware with 44, Insurance with 50, and Environmental Services with 51 companies.
+
 ```{r}
 ind <- inc %>% 
   select(Industry, State) %>%
@@ -70,6 +81,8 @@ ind <- inc %>%
 
 ind
 ```
+
+Below the total revenue for each industry is listed. In our previous table, it looks like IT Services have the highest number of growing companies with 733 companies, but the highest amount of revenue (26.4 billion dollars) is coming from the Business Products & Services industry where there are 482 companies.
 
 ```{r}
 revenue <- inc %>% 
@@ -91,6 +104,22 @@ reactable(revenue, columns = list(
     defaultPageSize = 5)
 ```
 
+Below is a table with the State, Industry, and Total Revenue corresponding to each combination. At the very top is Illinois' Computer Hardware industry with a total revenue of approximately 10.3 billion dollars, followed by Texas' Energy Industry with an approximate total revenue of 7.8 billion dollars.
+
+```{r}
+ inc %>% 
+  select(State, Industry, Revenue) %>%
+  group_by(State, Industry) %>% 
+  summarise(Total_Revenue = sum(Revenue)) %>%
+  arrange(desc(Total_Revenue)) %>% 
+  reactable(columns = list(
+  Total_Revenue = 
+    colDef(format = colFormat(prefix = "$", separators = TRUE, digits = 2))),
+    bordered = TRUE, striped = TRUE,
+    highlight = TRUE, filterable = TRUE,  showPageSizeOptions = TRUE,
+    showPagination = TRUE, pageSizeOptions = c(5, 10, 25),
+    defaultPageSize = 10)
+```
 
 
 ## Question 1
