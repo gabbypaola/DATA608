@@ -175,7 +175,7 @@ inc_NY2 %>%
   ggplot(aes(x=reorder(Industry, Employees), y=Employees))+
   stat_boxplot(geom = "errorbar", width = 0.15) +
   geom_boxplot(outlier.colour = "red", color="blue", fill="blue", alpha=0.2) +
-  stat_summary(fun.y=mean, geom="point", shape=20, size=2, color="black", fill="black") +
+  stat_summary(fun=mean, geom="point", shape=20, size=2, color="black", fill="black") +
   coord_flip() +
   theme_minimal()
 
