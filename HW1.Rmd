@@ -14,9 +14,11 @@ output:
 
 ## Module 1: Exploratory Data Analysis
 
-```{r message=TRUE, warning=TRUE}
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 library(dplyr)
 library(reactable)
+library(ggplot2)
+library(forcats)
 ```
 
 
@@ -126,17 +128,60 @@ Below is a table with the State, Industry, and Total Revenue corresponding to ea
 
 Create a graph that shows the distribution of companies in the dataset by State (ie how many are in each state). There are a lot of States, so consider which axis you should use. This visualization is ultimately going to be consumed on a 'portrait' oriented screen (ie taller than wide), which should further guide your layout choices.
 
-```{r}
+```{r fig.height=10, fig.width=7}
 # Answer Question 1 here
+inc %>% 
+  group_by(State) %>%
+  summarise(Count = length(State)) %>% 
+  ggplot(aes(x=fct_reorder(factor(State),Count), 
+             y= Count))+
+  geom_col(width = 0.6, position = position_dodge(0.9), fill= "steelblue") +
+  #geom_text(aes(label = Count, vjust = 1.2))+
+  coord_flip()+
+  labs(title= "Company Counts by State",
+       x= "State", y = "Number of Companies")+
+  theme_minimal()
+
 ```
 
 ## Quesiton 2
 
 Lets dig in on the state with the 3rd most companies in the data set. Imagine you work for the state and are interested in how many people are employed by companies in different industries. Create a plot that shows the average and/or median employment by industry for companies in this state (only use cases with full data, use R's `complete.cases()` function.) In addition to this, your graph should show how variable the ranges are, and you should deal with outliers.
 
-```{r}
+Below is a boxplot of the employment data by industry where the black dot added in is the mean of the data. The graph below contains the outliers of about 6 of variables which visibly skews the graph making it difficult to make out the distributions of the other variables.
+```{r fig.height = 7, fig.width = 10}
 # Answer Question 2 here
+
+#complete cases df and State filter for NY
+inc_NY <- inc[complete.cases(inc), ] %>% 
+  filter(State == 'NY')
+
+inc_NY  %>% 
+  ggplot(aes(x=reorder(Industry, Employees), y=Employees))+
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  geom_boxplot(outlier.colour = "red", color="blue", fill="blue", alpha=0.2)+
+  stat_summary(fun.y=mean, geom="point", shape=20, size=2, color="black", fill="black") +
+  coord_flip() +
+  theme_minimal()
 ```
+
+```{r fig.height = 7, fig.width = 10}
+inc_NY2 <- inc_NY %>% 
+  group_by(Industry) %>% 
+  filter(!Employees %in% boxplot.stats(Employees)$out) %>% 
+  ungroup
+
+inc_NY2 %>% 
+  ggplot(aes(x=reorder(Industry, Employees), y=Employees))+
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  geom_boxplot(outlier.colour = "red", color="blue", fill="blue", alpha=0.2) +
+  stat_summary(fun.y=mean, geom="point", shape=20, size=2, color="black", fill="black") +
+  coord_flip() +
+  theme_minimal()
+
+```
+
+
 
 ## Question 3
 
