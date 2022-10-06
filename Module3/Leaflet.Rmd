@@ -6,7 +6,6 @@ output: html_document
 ---
 
 ```{r}
-library(tidyverse)
 library(dplyr)
 library(leaflet)
 library(tigris)
@@ -103,7 +102,7 @@ ui <- fluidPage(titlePanel('Causes of Death Across US in 2010'),
 
 #shiny app server
 server <- shinyServer(function(input, output, session){
-    selectedData <- reactive({
+    states_merged_filtered <- reactive({
         filter(states_merged, year == 2010 & icd.chapter == input$cause)
     })
     #create color palette based on range of Crude.Rate
