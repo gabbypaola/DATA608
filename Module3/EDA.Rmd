@@ -1,0 +1,179 @@
+---
+title: "Untitled"
+author: "Gabriella Martinez"
+date: "10/3/2022"
+output: html_document
+---
+
+Question 1:
+Visualization that will let you see (2010 only) the crude mortality rate across all states from one cause (i.e. Neoplasms). Allows you to rank states by crude mortality rate.
+
+
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(leaflet)
+library(tigris)
+library(plotly)
+library(shiny)
+library(shinythemes)
+library(rsconnect)
+```
+
+```{r}
+df <- read.csv("https://raw.githubusercontent.com/charleyferrari/CUNY_DATA_608/master/module3/data/cleaned-cdc-mortality-1999-2010-2.csv")
+```
+
+
+
+```{r}
+str(df)
+
+unique(df$ICD.Chapter)
+```
+```{r}
+df$ICD.Chapter <- as.factor(df$ICD.Chapter)
+
+str(df)
+
+#df<- dplyr::filter(df, Year==2010)
+```
+
+#### plotly
+```{r}
+df2010<- dplyr::filter(df, Year==2010)
+```
+
+
+```{r}
+df2010$hover <- with(df2010, paste(State, '<br>',"Deaths", Deaths, '<br>',"Population", Population))
+
+l <- list(color = toRGB("white"), width = 2)
+# specify some map projection/options
+g <- list( scope = 'usa', projection = list(type = 'albers usa'),
+  showlakes = TRUE,lakecolor = toRGB('white'))
+
+fig <- plot_geo(df2010, locationmode = 'USA-states')
+fig <- fig %>% add_trace(z = ~Crude.Rate, text = ~hover, 
+                         locations = ~State, color = ~Crude.Rate, 
+                         colors = 'Blues')
+
+fig <- fig %>% colorbar(title = "Crude Death Rate")
+fig <- fig %>% layout(
+    title = '2010 US Death Rates by State<br>(Hover for breakdown)',
+    geo = g
+  )
+
+fig
+```
+
+
+```{r}
+plot_geo(df2010, locationmode = 'USA-states', frame=~ICD.Chapter) %>% 
+  add_trace(z = ~Crude.Rate, text = ~hover, 
+            locations = ~State, color = ~Crude.Rate, 
+            colors = 'Blues') %>% 
+  colorbar(title = "Crude Death Rate") %>% 
+  layout(title = '2010 US Death Rates by State<br>(Hover for breakdown)',
+    geo = list( scope = 'usa', projection = list(type = 'albers usa'),
+  showlakes = TRUE,lakecolor = toRGB('white'))
+  )
+
+```
+
+
+
+
+
+
+
+
+
+```{r}
+#shiny app UI
+ui <- fluidPage(
+    headerPanel('Exploring Causes of Death Across State Lines in 2010'),
+    
+    sidebarLayout(
+        sidebarPanel(
+            selectInput(
+                inputId = 'cause', 
+                label = 'Cause of Death:', 
+                choices = unique(df2010$icd.chapter))
+                ),
+        
+        mainPanel(
+            #h3('2010 State Mortality Rates'),
+            htmlOutput(outputId = 'desc'), #plot description
+            plotOutput('plot1')
+            )
+    )
+)
+#shiny app server
+server <- shinyServer(function(input, output, session){
+    selectedData <- reactive({
+        filter(df2010, icd.chapter == input$cause)
+    })
+    output$desc <- renderText({
+        paste('Death rate per 100,000 persons for ', input$cause)
+    })
+    output$plot1 <- renderPlot({
+     plot_geo(df2010, locationmode = 'USA-states', frame=~ICD.Chapter) %>% 
+  add_trace(z = ~Crude.Rate, text = ~hover, 
+            locations = ~State, color = ~Crude.Rate, 
+            colors = 'Blues') %>% 
+  colorbar(title = "Crude Death Rate") %>% 
+  layout(title = '2010 US Death Rates by State<br>(Hover for breakdown)',
+    geo = list( scope = 'usa', projection = list(type = 'albers usa'),
+  showlakes = TRUE,lakecolor = toRGB('white'))
+  )
+    }
+    )
+})
+shinyApp(ui = ui, server = server)
+deployApp()
+```
+
+
+#### leaflet
+
+
+```{r}
+#load in shapefile
+states <- tigris::states(cb=T)
+
+#change column name on shapefile for left join with death data
+states <- states %>% rename("State" = "STUSPS")
+
+```
+
+```{r}
+#merge
+#states_merged <- df %>% left_join(states, by="State")
+
+states_merged <- geo_join(data_frame=df, spatial_data= states, by_df= "State", by_sp= "State", by = NULL, how = "inner")
+
+#create color palette based on range of Crude.Rate
+pal <- colorNumeric("Reds", domain=states_merged$Crude.Rate)
+
+#remove NA
+states_merged <- subset(states_merged, !is.na(Crude.Rate))
+
+# Setting up the pop up text
+popup <- paste0("Total: ", as.character(states_merged$Crude.Rate))
+
+str(states_merged)
+```
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,142 @@
+---
+title: "Untitled"
+author: "Gabriella Martinez"
+date: "10/5/2022"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(dplyr)
+library(leaflet)
+library(tigris)
+library(plotly)
+library(shiny)
+library(shinythemes)
+library(rsconnect)
+```
+
+```{r}
+df <- read.csv("https://raw.githubusercontent.com/charleyferrari/CUNY_DATA_608/master/module3/data/cleaned-cdc-mortality-1999-2010-2.csv")
+
+names(df) <- lapply(names(df), tolower)
+```
+
+```{r}
+#df$ICD.Chapter <- as.factor(df$ICD.Chapter)
+
+str(df)
+```
+
+```{r}
+#load in shapefile
+states <- tigris::states(cb=T)
+
+#change column name on shapefile for left join with death data
+states <- states %>% rename("state" = "STUSPS")
+
+```
+
+```{r}
+#merge
+#states_merged <- df %>% left_join(states, by="State")
+
+#need to use geo_join in order to get sf type datafram for leaflet
+states_merged <- geo_join(data_frame=df, spatial_data= states, by_df= "state", by_sp= "state", by = NULL, how = "inner")
+
+# #remove NA
+states_merged <- subset(states_merged, !is.na(crude.rate))
+```
+
+# Create a Static Map keeping `year` and `icd.chapter` constant
+```{r}
+states_merged_filtered <- filter(states_merged, year == 2010 & icd.chapter == 'Neoplasms')
+```
+
+
+```{r}
+# #create color palette based on range of Crude.Rate
+pal <- colorNumeric("Reds", domain=states_merged_filtered$crude.rate)
+
+# Setting up the pop up text
+popup_sb <- with(states_merged_filtered, 
+                 paste(NAME, '<br>',
+                       "Crude Rate: ", crude.rate ,'<br>',
+                       "Deaths: ", deaths, '<br>',"Population", population))
+```
+
+
+```{r}
+# Mapping it with the new tiles CartoDB.Positron
+leaflet() %>%
+  addProviderTiles("CartoDB.Positron") %>%
+  setView(-98.483330, 38.712046, zoom = 4) %>% 
+  addPolygons(data = states_merged_filtered, 
+              fillColor = ~pal(states_merged_filtered$crude.rate), 
+              fillOpacity = 0.7, 
+              weight = 0.2, 
+              smoothFactor = 0.2, 
+              popup = ~popup_sb) %>%
+  addLegend(pal = pal, 
+            values = states_merged_filtered$crude.rate, 
+            position = "bottomright", 
+            title = "Death Rates")
+```
+
+```{r}
+#shiny app UI
+ui <- fluidPage(titlePanel('Causes of Death Across US in 2010'),
+    sidebarLayout(
+        sidebarPanel(
+            selectInput(
+                inputId = 'cause', 
+                label = 'Cause of Death:', 
+                choices = unique(states_merged$icd.chapter),
+                selected = "Choose cause")
+                ),
+        
+        mainPanel(
+            leafletOutput(outputId = 'map', height = 800)
+            )
+    )
+)
+
+#shiny app server
+server <- shinyServer(function(input, output, session){
+    selectedData <- reactive({
+        filter(states_merged, year == 2010 & icd.chapter == input$cause)
+    })
+    #create color palette based on range of Crude.Rate
+      pal <- colorNumeric("Reds", domain=states_merged_filtered$crude.rate)
+
+    #Setting up the pop up text
+      popup_sb <- with(states_merged_filtered, 
+                 paste(NAME, '<br>',
+                       "Crude Rate: ", crude.rate ,'<br>',
+                       "Deaths: ", deaths, '<br>',
+                       "Population", population))
+      
+    output$map <- renderLeaflet({
+        leaflet() %>%
+        addProviderTiles("CartoDB.Positron") %>%
+        setView(-98.483330, 38.712046, zoom = 4) %>% 
+        addPolygons(data = states_merged_filtered, 
+              fillColor = ~pal(states_merged_filtered$crude.rate), 
+              fillOpacity = 0.7, 
+              weight = 0.2, 
+              smoothFactor = 0.2, 
+              popup = ~popup_sb) %>%
+        addLegend(pal = pal, 
+            values = states_merged_filtered$crude.rate, 
+            position = "bottomright", 
+            title = "Death Rates")
+        
+    }
+    )
+})
+
+shinyApp(ui = ui, server = server)
+deployApp()
+```
+
+
