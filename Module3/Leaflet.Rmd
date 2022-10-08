@@ -37,6 +37,29 @@ unique(df$icd.chapter)
 
 #df$ICD.Chapter <- as.factor(df$ICD.Chapter)
 ```
+```{r}
+df %>% filter(year == 2010 & 
+                icd.chapter == 'Mental and behavioural disorders') %>%
+                arrange(desc(crude.rate)) %>% 
+                #top_n(25) %>% 
+    ggplot(aes(x=reorder(state, crude.rate), y=crude.rate))+
+     geom_col(fill='steelblue') +
+     coord_flip() +
+     geom_text(aes(label=crude.rate), size = 2, hjust = -0.1)+
+     labs(title = "Cause of Death: Mental and behavioural disorders", 
+          subtitle = "Crude Rate Across the US in 2010",
+          x= "State", 
+          y = "Crude Rate") +
+     theme_minimal()
+
+```
+
+For shiny bar plot to show *rank* but have option to not show all states at once: create an option to select top 10, 25, or all.
+
+
+
+
+### Interactive Map 
 
 ```{r message=FALSE, warning=FALSE}
 #load in shapefile
@@ -48,8 +71,9 @@ states <- states %>% rename("state" = "STUSPS")
 
 ^[https://stackoverflow.com/questions/73181511/shapefile-warnings-in-r]
 ```{r message=FALSE, warning=FALSE}
-st_crs(states)$epsg
+#st_crs(states)$epsg
 
+#transform states shapefile to resolve error message
 states <- st_transform(states, 4326)
 ```
 
@@ -59,7 +83,9 @@ states <- st_transform(states, 4326)
 #states_merged <- df %>% left_join(states, by="State")
 
 #need to use geo_join in order to get sf type dataframe for leaflet
-states_merged <- geo_join(data_frame=df, spatial_data= states, by_df= "state", by_sp= "state", by = NULL, how = "inner")
+states_merged <- geo_join(data_frame=df, spatial_data= states, 
+                          by_df= "state", by_sp= "state", by = NULL, 
+                          how = "inner")
 
 #remove NA
 states_merged <- subset(states_merged, !is.na(crude.rate))
@@ -67,7 +93,10 @@ states_merged <- subset(states_merged, !is.na(crude.rate))
 
 # Create a Static Map keeping `year` and `icd.chapter` constant
 ```{r message=FALSE, warning=FALSE}
-states_merged_filtered <- filter(states_merged, year == 2010 & icd.chapter == 'Mental and behavioural disorders')
+states_merged_filtered <- filter(states_merged, 
+                                 year == 2010 & icd.chapter == 
+                                   'Mental and behavioural disorders') 
+#%>%  arrange(desc(crude.rate)) %>% top_n(10, wt=crude.rate)
 
 # #create color palette based on range of Crude.Rate
 pal <- colorNumeric("Reds", domain=states_merged_filtered$crude.rate)
@@ -76,11 +105,12 @@ pal <- colorNumeric("Reds", domain=states_merged_filtered$crude.rate)
 popup_sb <- with(states_merged_filtered,
                  paste(NAME, '<br>',
                        "Crude Rate: ", crude.rate ,'<br>',
-                       "Deaths: ", deaths, '<br>',"Population", population))
+                       "Deaths: ", deaths, '<br>',
+                       "Population", population))
 ```
 
 ^[https://learn.r-journalism.com/en/mapping/census_maps/census-maps/]
-```{r}
+```{r message=FALSE, warning=FALSE}
 # Mapping it with the new tiles CartoDB.Positron
 leaflet() %>%
   addProviderTiles("CartoDB.Positron") %>%
@@ -97,20 +127,10 @@ leaflet() %>%
             title = "Crude Rate")
 ```
 
-
-
 ^[https://stackoverflow.com/questions/57030746/shiny-leaflet-reactive-function-not-working]
 This is what actually helped me fix it: ^[https://stackoverflow.com/questions/17002160/shiny-tutorial-error-in-r]
-```{r}
+```{r message=FALSE, warning=FALSE}
 #shiny app UI
-
-#'Examining Causes of Death Across United States from 1999-2010'
-#'
-#'fluidRow(
-  #   column(9, "Examining Causes of Death Across the US from 1999-2010"), 
-  #   column(9, "Death rate per 100,000 persons")
-  # )
-
 ui <- fluidPage(
     titlePanel(
                "Examining Causes of Death Across the US from 1999-2010"
@@ -140,14 +160,6 @@ server <- shinyServer(function(input, output, session){
       filter(states_merged, year == input$year & icd.chapter == input$cause)
       })
 
-    # #create color palette based on range of Crude.Rate
-    #   pal <- colorNumeric("Reds", domain=map_data()$crude.rate)
-    # #Setting up the pop up text
-    #   popup_sb <- with(map_data(), 
-    #              paste(NAME, '<br>',
-    #                    "Crude Rate: ", crude.rate ,'<br>',
-    #                    "Deaths: ", deaths, '<br>',
-    #                    "Population", population))
     output$map <- renderLeaflet({
      #create color palette based on range of Crude.Rate
       pal <- colorNumeric("Reds", domain=map_data()$crude.rate)
@@ -183,8 +195,4 @@ shinyApp(ui = ui, server = server)
 deployApp()
 ```
 
-```{r}
-# map_data <- reactive({filter(states_merged, 
-#                               year == 2010 & icd.chapter == input$cause)})
-```
 
