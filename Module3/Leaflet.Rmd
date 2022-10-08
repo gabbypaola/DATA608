@@ -13,7 +13,7 @@ output: html_document
 
 
 
-```{r message=FALSE, warning=FALSE, include=FALSE}
+```{r message=FALSE, warning=FALSE}
 library(dplyr)
 library(leaflet)
 library(tigris)
@@ -24,52 +24,49 @@ library(rsconnect)
 library(sf)
 ```
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 df <- read.csv("https://raw.githubusercontent.com/charleyferrari/CUNY_DATA_608/master/module3/data/cleaned-cdc-mortality-1999-2010-2.csv")
 
 names(df) <- lapply(names(df), tolower)
+```
+
+```{r message=FALSE, warning=FALSE}
+str(df)
 
 unique(df$icd.chapter)
 
-#df$year <- as.character(df$year)
-```
-
-```{r}
 #df$ICD.Chapter <- as.factor(df$ICD.Chapter)
-
-str(df)
 ```
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 #load in shapefile
 states <- tigris::states(cb=T)
 
 #change column name on shapefile for left join with death data
 states <- states %>% rename("state" = "STUSPS")
-
 ```
 
 ^[https://stackoverflow.com/questions/73181511/shapefile-warnings-in-r]
-```{r}
+```{r message=FALSE, warning=FALSE}
 st_crs(states)$epsg
 
 states <- st_transform(states, 4326)
 ```
 
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 #merge
 #states_merged <- df %>% left_join(states, by="State")
 
-#need to use geo_join in order to get sf type datafram for leaflet
+#need to use geo_join in order to get sf type dataframe for leaflet
 states_merged <- geo_join(data_frame=df, spatial_data= states, by_df= "state", by_sp= "state", by = NULL, how = "inner")
 
-# #remove NA
+#remove NA
 states_merged <- subset(states_merged, !is.na(crude.rate))
 ```
 
 # Create a Static Map keeping `year` and `icd.chapter` constant
-```{r}
+```{r message=FALSE, warning=FALSE}
 states_merged_filtered <- filter(states_merged, year == 2010 & icd.chapter == 'Mental and behavioural disorders')
 
 # #create color palette based on range of Crude.Rate
@@ -97,7 +94,7 @@ leaflet() %>%
   addLegend(pal = pal,
             values = states_merged_filtered$crude.rate,
             position = "bottomright",
-            title = "Death Rates")
+            title = "Crude Rate")
 ```
 
 
@@ -108,9 +105,15 @@ This is what actually helped me fix it: ^[https://stackoverflow.com/questions/17
 #shiny app UI
 
 #'Examining Causes of Death Across United States from 1999-2010'
+#'
+#'fluidRow(
+  #   column(9, "Examining Causes of Death Across the US from 1999-2010"), 
+  #   column(9, "Death rate per 100,000 persons")
+  # )
 
 ui <- fluidPage(
-    titlePanel('Examining Causes of Death Across United States from 1999-2010'
+    titlePanel(
+               "Examining Causes of Death Across the US from 1999-2010"
                ),
     sidebarLayout(
         sidebarPanel(
@@ -136,6 +139,7 @@ server <- shinyServer(function(input, output, session){
     map_data <- reactive({
       filter(states_merged, year == input$year & icd.chapter == input$cause)
       })
+
     # #create color palette based on range of Crude.Rate
     #   pal <- colorNumeric("Reds", domain=map_data()$crude.rate)
     # #Setting up the pop up text
@@ -157,7 +161,8 @@ server <- shinyServer(function(input, output, session){
       #create map  
         map_data() %>% 
         leaflet() %>%
-        addProviderTiles("CartoDB.Positron") %>%
+        addProviderTiles("CartoDB.Positron")%>%
+        addControl(title, position = "topleft", className="map-title") %>%
         setView(-98.483330, 38.712046, zoom = 4) %>% 
         addPolygons( 
               fillColor = ~pal(map_data()$crude.rate), #reference map_data() 
@@ -168,7 +173,7 @@ server <- shinyServer(function(input, output, session){
         addLegend(pal = pal, 
             values = map_data()$crude.rate, #reference map_data() 
             position = "bottomright", 
-            title = "Death Rates")
+            title = "Deaths per 100,000 persons")
         
     }
     )
