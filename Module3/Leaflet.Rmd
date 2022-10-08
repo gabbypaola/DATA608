@@ -12,7 +12,6 @@ output: html_document
 ```
 
 
-
 ```{r message=FALSE, warning=FALSE}
 library(dplyr)
 library(leaflet)
@@ -38,22 +37,25 @@ unique(df$icd.chapter)
 #df$ICD.Chapter <- as.factor(df$ICD.Chapter)
 ```
 
+## Question 1
+As a researcher, you frequently compare mortality rates from particular causes across different states. You need a visualization that will let you see (for 2010 only) the crude mortality rate, across all states, from one cause (for example, Neoplasms (cancers)). Create a visualization that allows you to rank states by crude mortality rate for each cause of death.
+
+
 Static Bar Plot of the values fixing `icd.chapter`, `year`, and the top 25 values to display using `top_n()`.
 ```{r}
 df %>% filter(year == 2010 & 
                 icd.chapter == 'Mental and behavioural disorders') %>%
                 arrange(desc(crude.rate)) %>% 
-                top_n(25) %>% 
+                top_n(10) %>% 
     ggplot(aes(x=reorder(state, crude.rate), y=crude.rate))+
-     geom_col(fill='steelblue') +
+     geom_col(fill='#f69697') +
      coord_flip() +
      geom_text(aes(label=crude.rate), size = 2, hjust = -0.1)+
      labs(title = "Cause of Death: Mental and behavioural disorders", 
-          subtitle = "Crude Rate Across the US in 2010",
+          subtitle = "Crude Death Rate Across the US in 2010",
           x= "State", 
           y = "Crude Rate") +
      theme_minimal()
-
 ```
 
 For shiny bar plot to show *rank* but have option to not show all states at once: create an option to select top 10, 25, or all.
@@ -113,7 +115,6 @@ server <- shinyServer(function(input, output, session){
     }
     )
 })
-
 shinyApp(ui = ui, server = server)
 deployApp()
 ```
@@ -156,7 +157,10 @@ states_merged <- subset(states_merged, !is.na(crude.rate))
 ```{r message=FALSE, warning=FALSE}
 states_merged_filtered <- filter(states_merged, 
                                  year == 2010 & icd.chapter == 
-                                   'Mental and behavioural disorders') 
+                                   'Mental and behavioural disorders') %>% 
+                                group_by(icd.chapter) %>% 
+                                mutate(rank = rank(desc(crude.rate),
+                                                   ties.method = "first"))
 #%>%  arrange(desc(crude.rate)) %>% top_n(10, wt=crude.rate)
 
 # #create color palette based on range of Crude.Rate
@@ -165,6 +169,7 @@ pal <- colorNumeric("Reds", domain=states_merged_filtered$crude.rate)
 # Setting up the pop up text
 popup_sb <- with(states_merged_filtered,
                  paste(NAME, '<br>',
+                       "Rank: ", rank, '<br>',
                        "Crude Rate: ", crude.rate ,'<br>',
                        "Deaths: ", deaths, '<br>',
                        "Population", population))
@@ -218,7 +223,9 @@ ui <- fluidPage(
 #shiny app server
 server <- shinyServer(function(input, output, session){
     map_data <- reactive({
-      filter(states_merged, year == input$year & icd.chapter == input$cause)
+      filter(states_merged, year == input$year & icd.chapter == input$cause)%>% 
+      group_by(icd.chapter) %>% 
+      mutate(rank = rank(desc(crude.rate),ties.method = "first"))
       })
 
     output$map <- renderLeaflet({
@@ -228,6 +235,7 @@ server <- shinyServer(function(input, output, session){
       popup_sb <- with(map_data(), 
                  paste(NAME, '<br>',
                        "Year: ", year, '<br>',
+                       "Rank: ", rank, '<br>',
                        "Crude Rate: ", crude.rate ,'<br>',
                        "Deaths: ", deaths, '<br>',
                        "Population: ", population))
@@ -235,7 +243,6 @@ server <- shinyServer(function(input, output, session){
         map_data() %>% 
         leaflet() %>%
         addProviderTiles("CartoDB.Positron")%>%
-        addControl(title, position = "topleft", className="map-title") %>%
         setView(-98.483330, 38.712046, zoom = 4) %>% 
         addPolygons( 
               fillColor = ~pal(map_data()$crude.rate), #reference map_data() 
@@ -247,13 +254,23 @@ server <- shinyServer(function(input, output, session){
             values = map_data()$crude.rate, #reference map_data() 
             position = "bottomright", 
             title = "Deaths per 100,000 persons")
-        
     }
     )
 })
-
 shinyApp(ui = ui, server = server)
 deployApp()
 ```
+
+
+## Question 2
+Often you are asked whether particular states are improving their mortality rates (per cause) faster than, or slower than, the national average. Create a visualization that lets your clients see this for themselves for one cause of death at a time. Keep in mind that the national average should be weighted by the national population.  
+We'll start by performing "background calculations" since we weren't provided with a national average in our original dataset. We compute the national average per year and cause, select variables of interest for our US (national average) data set and the OG (original) data set, and then combine and verify that our combination was successful via the built-in nrow() function:
+
+```{r}
+
+```
+
+
+
 
 
