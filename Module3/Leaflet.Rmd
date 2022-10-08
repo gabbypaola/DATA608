@@ -30,12 +30,14 @@ df <- read.csv("https://raw.githubusercontent.com/charleyferrari/CUNY_DATA_608/m
 names(df) <- lapply(names(df), tolower)
 
 unique(df$icd.chapter)
+
+#df$year <- as.character(df$year)
 ```
 
 ```{r}
 #df$ICD.Chapter <- as.factor(df$ICD.Chapter)
 
-#str(df)
+str(df)
 ```
 
 ```{r}
@@ -98,18 +100,31 @@ leaflet() %>%
             title = "Death Rates")
 ```
 
+
+
+^[https://stackoverflow.com/questions/57030746/shiny-leaflet-reactive-function-not-working]
+This is what actually helped me fix it: ^[https://stackoverflow.com/questions/17002160/shiny-tutorial-error-in-r]
 ```{r}
 #shiny app UI
+
+#'Examining Causes of Death Across United States from 1999-2010'
+
 ui <- fluidPage(
-    titlePanel('Causes of Death Across United States in 2010'),
+    titlePanel('Examining Causes of Death Across United States from 1999-2010'
+               ),
     sidebarLayout(
         sidebarPanel(
+           selectInput(
+                inputId = 'year', 
+                label = 'Year:', 
+                choices = unique(states_merged$year),
+                selected = 2010),
             selectInput(
                 inputId = 'cause', 
                 label = 'Cause of Death:', 
-                choices = unique(states_merged$icd.chapter))
+                choices = unique(states_merged$icd.chapter),
+                selected = "Certain infectious and parasitic diseases"),
                 ),
-        
         mainPanel(
            leafletOutput(outputId = 'map', height = 800)
             )
@@ -119,30 +134,39 @@ ui <- fluidPage(
 #shiny app server
 server <- shinyServer(function(input, output, session){
     map_data <- reactive({
-      filter(states_merged, year == 2010 & icd.chapter == input$cause)
+      filter(states_merged, year == input$year & icd.chapter == input$cause)
       })
-    #create color palette based on range of Crude.Rate
-      pal <- colorNumeric("Reds", domain=states_merged$crude.rate)
-    #Setting up the pop up text
-      popup_sb <- with(states_merged, 
+    # #create color palette based on range of Crude.Rate
+    #   pal <- colorNumeric("Reds", domain=map_data()$crude.rate)
+    # #Setting up the pop up text
+    #   popup_sb <- with(map_data(), 
+    #              paste(NAME, '<br>',
+    #                    "Crude Rate: ", crude.rate ,'<br>',
+    #                    "Deaths: ", deaths, '<br>',
+    #                    "Population", population))
+    output$map <- renderLeaflet({
+     #create color palette based on range of Crude.Rate
+      pal <- colorNumeric("Reds", domain=map_data()$crude.rate)
+     #Setting up the pop up text
+      popup_sb <- with(map_data(), 
                  paste(NAME, '<br>',
+                       "Year: ", year, '<br>',
                        "Crude Rate: ", crude.rate ,'<br>',
                        "Deaths: ", deaths, '<br>',
-                       "Population", population))
-   
-    output$map <- renderLeaflet({
+                       "Population: ", population))
+      #create map  
         map_data() %>% 
         leaflet() %>%
         addProviderTiles("CartoDB.Positron") %>%
         setView(-98.483330, 38.712046, zoom = 4) %>% 
         addPolygons( 
-              fillColor = ~pal(states_merged$crude.rate), #reference map_data() or states_merged? also do i use the rate value or the cause of death (icd.chapter)
+              fillColor = ~pal(map_data()$crude.rate), #reference map_data() 
               fillOpacity = 0.7, 
               weight = 0.2, 
               smoothFactor = 0.2, 
               popup = ~popup_sb) %>%
         addLegend(pal = pal, 
-            values = states_merged$crude.rate, #reference map_data() or states_merged?
+            values = map_data()$crude.rate, #reference map_data() 
             position = "bottomright", 
             title = "Death Rates")
         
