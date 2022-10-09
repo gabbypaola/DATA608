@@ -9,6 +9,7 @@ output: html_document
 ```{r}
 # remove.packages("rlang")
 # install.packages("rlang")
+#install.packages("gghighlight")
 ```
 
 
@@ -21,6 +22,8 @@ library(shiny)
 library(shinythemes)
 library(rsconnect)
 library(sf)
+library(ggplot2)
+library(gghighlight)
 ```
 
 ```{r message=FALSE, warning=FALSE}
@@ -264,13 +267,82 @@ deployApp()
 
 ## Question 2
 Often you are asked whether particular states are improving their mortality rates (per cause) faster than, or slower than, the national average. Create a visualization that lets your clients see this for themselves for one cause of death at a time. Keep in mind that the national average should be weighted by the national population.  
-We'll start by performing "background calculations" since we weren't provided with a national average in our original dataset. We compute the national average per year and cause, select variables of interest for our US (national average) data set and the OG (original) data set, and then combine and verify that our combination was successful via the built-in nrow() function:
+
+
+```{r}
+natl_avg <- df %>% 
+  group_by(icd.chapter, year) %>% 
+  mutate(crude.rate= round((sum(deaths) / sum(population)) * 100000, 1)) %>% 
+  mutate(state= "US") %>% 
+  select(icd.chapter, state, year, crude.rate) %>% 
+  distinct(icd.chapter, year, .keep_all = TRUE) %>% 
+  ungroup()
+
+#natl_avg
+```
+
+```{r}
+df_avg <- df %>% 
+  select(icd.chapter,state,year,crude.rate) %>% 
+  rbind(natl_avg)
+
+# sanity check                
+# df_avg %>% 
+#   filter(state == "US")
+```
+
+Create line chart where only natl avg is highlighted
+^[https://cran.r-project.org/web/packages/gghighlight/vignettes/gghighlight.html]
+```{r}
+#plots all states vs. US w/ cause as Mental and behavioural disorders
+df_avg_plot <- df_avg %>% 
+  filter(icd.chapter == 'Mental and behavioural disorders')
+
+df_avg_plot %>% 
+  ggplot(aes(year, crude.rate), color=state) +
+  geom_line(aes(year, crude.rate, color = state), size=.7) +
+  gghighlight(state=="US", label_params = list(size = 5),
+              unhighlighted_params = list(colour="darkgray",
+                                          alpha = 0.6,
+                                          size=.6))+
+  theme_minimal()
+```
+
+```{r}
+#state==c("US","NJ")  | state == 'US'
+#US will stay constant, the other state will be user input give user to select multiple
+
+df_avg_plot <- df_avg %>% 
+  filter(icd.chapter == 'Mental and behavioural disorders', state == 'US' | state %in% c('NJ','NY','MA') )
+
+# df_avg_plot <- mutate(df_avg_plot, Label = ifelse(year == 2010, state, NA),
+#             state = as.character(state))
+
+df_avg_plot %>% 
+  ggplot(aes(year, crude.rate), color=state) +
+  geom_line(aes(year, crude.rate, color = state), size=.7)+
+  theme_minimal() 
+  
+# geom_label(aes(label = Label), nudge_x = 0.35, size = 3) +
+# gghighlight(state=="US", label_params = list(size = 5),
+#               unhighlighted_params = list(colour="darkgray",
+#                                           alpha = 0.6,
+#                                           size=.6))
+```
+
+```{r}
+df_avg_plot <- df_avg %>%
+  filter(icd.chapter == 'Mental and behavioural disorders', state == 'US' | state %in% c('NJ','NY','MA') )
+
+p <- df_avg_plot %>%
+  ggplot(aes(year, crude.rate), color=state) +
+  geom_line(aes(year, crude.rate, color = state), size=.7) +
+  theme_minimal() 
+
+ggplotly(p) %>% hide_legend()
+```
 
 ```{r}
 
 ```
-
-
-
-
 
