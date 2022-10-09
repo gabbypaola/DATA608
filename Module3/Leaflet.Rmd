@@ -26,6 +26,14 @@ library(ggplot2)
 library(gghighlight)
 ```
 
+```{r}
+rsconnect::setAccountInfo(name='gabbypaola',
+			  token='6C8C97C7673C3F08BCAB0D6A30D000C1',
+			  secret='HOYwFQGj+q4L7lMHPHLuS7n+39AMR48ewVLrRpbh')
+```
+
+
+
 ```{r message=FALSE, warning=FALSE}
 df <- read.csv("https://raw.githubusercontent.com/charleyferrari/CUNY_DATA_608/master/module3/data/cleaned-cdc-mortality-1999-2010-2.csv")
 
@@ -44,7 +52,7 @@ unique(df$icd.chapter)
 As a researcher, you frequently compare mortality rates from particular causes across different states. You need a visualization that will let you see (for 2010 only) the crude mortality rate, across all states, from one cause (for example, Neoplasms (cancers)). Create a visualization that allows you to rank states by crude mortality rate for each cause of death.
 
 
-Static Bar Plot of the values fixing `icd.chapter`, `year`, and the top 25 values to display using `top_n()`.
+Static Bar Graph of the values fixing `icd.chapter`, `year`, and the top 25 values to display using `top_n()`.
 ```{r}
 df %>% filter(year == 2010 & 
                 icd.chapter == 'Mental and behavioural disorders') %>%
@@ -70,56 +78,56 @@ For shiny bar plot to show *rank* but have option to not show all states at once
 ```{r}
 #shiny app UI
 ui <- fluidPage(
-    titlePanel(
-               "Examining Causes of Death Across the US from 1999-2010"
-               ),
-    sidebarLayout(
-        sidebarPanel(
-           selectInput(
-                inputId = 'year', 
-                label = 'Year:', 
-                choices = unique(df$year),
-                selected = 2010), #sets the default display 2010 chosen to answer the question
-            selectInput(
-                inputId = 'cause', 
-                label = 'Cause of Death:', 
-                choices = unique(df$icd.chapter),
-                selected = "Certain infectious and parasitic diseases"),
-            selectInput(
-                inputId = 'topN', #controls the displayed amount of values
-                label = 'Choose Top States to display', 
-                choices = c(10,25,51), #display 10, 25 or 51 at a time
-                selected = 10), #default is 10
-           ),
-        mainPanel(
-            plotOutput('plot1', height = "800px")
-            )
+  titlePanel(
+    "Examining Causes of Death Across the US from 1999-2010"
+  ),
+  sidebarLayout(
+    sidebarPanel(
+      selectInput(
+        inputId = 'year', 
+        label = 'Year:', 
+        choices = unique(df$year),
+        selected = 2010), #sets the default display 2010 chosen to answer the question
+      selectInput(
+        inputId = 'cause', 
+        label = 'Cause of Death:', 
+        choices = unique(df$icd.chapter),
+        selected = "Certain infectious and parasitic diseases"),
+      selectInput(
+        inputId = 'topN', #controls the displayed amount of values
+        label = 'Choose Top States to display', 
+        choices = c(10,25,51), #display 10, 25 or 51 at a time
+        selected = 10), #default is 10
+    ),
+    mainPanel(
+      plotOutput('plot1', height = "800px")
     )
+  )
 )
 
 #shiny app server
 server <- shinyServer(function(input, output, session){
-    plot_data <- reactive({
-      filter(df, year == input$year & icd.chapter == input$cause) %>% 
-        top_n(n=as.integer(input$topN),wt=crude.rate)
-      })
-
-   #barplot
-    output$plot1 <- renderPlot({
-         ggplot(plot_data(), aes(x=reorder(state, crude.rate), y=crude.rate))+
-            geom_col(fill='#f69697') + 
-            coord_flip() +
-            geom_text(aes(label=crude.rate), size = 4, hjust = -0.1)+
-            labs(title=paste('Crude Mortality Rates for',input$cause),
-                 subtitle=paste('Top', input$topN, 'states'),
-                 x = "State", 
-                 y = "Crude Rate")+
-            theme_minimal()
-    }
-    )
+  plot_data <- reactive({
+    filter(df, year == input$year & icd.chapter == input$cause) %>% 
+      top_n(n=as.integer(input$topN),wt=crude.rate)
+  })
+  
+  #barplot
+  output$plot1 <- renderPlot({
+    ggplot(plot_data(), aes(x=reorder(state, crude.rate), y=crude.rate))+
+      geom_col(fill='#f69697') + 
+      coord_flip() +
+      geom_text(aes(label=crude.rate), size = 4, hjust = -0.1)+
+      labs(title=paste('Crude Mortality Rates for',input$cause),
+           subtitle=paste('Top', input$topN, 'states'),
+           x = "State", 
+           y = "Crude Rate")+
+      theme_minimal()
+  }
+  )
 })
 shinyApp(ui = ui, server = server)
-deployApp()
+rsconnect::deployApp()
 ```
 
 
@@ -201,64 +209,64 @@ This is what actually helped me fix it: ^[https://stackoverflow.com/questions/17
 ```{r message=FALSE, warning=FALSE}
 #shiny app UI
 ui <- fluidPage(
-    titlePanel(
-               "Examining Causes of Death Across the US from 1999-2010"
-               ),
-    sidebarLayout(
-        sidebarPanel(
-           selectInput(
-                inputId = 'year', 
-                label = 'Year:', 
-                choices = unique(states_merged$year),
-                selected = 2010),
-            selectInput(
-                inputId = 'cause', 
-                label = 'Cause of Death:', 
-                choices = unique(states_merged$icd.chapter),
-                selected = "Certain infectious and parasitic diseases"),
-                ),
-        mainPanel(
-           leafletOutput(outputId = 'map', height = 800)
-            )
+  titlePanel(
+    "Examining Causes of Death Across the US from 1999-2010"
+  ),
+  sidebarLayout(
+    sidebarPanel(
+      selectInput(
+        inputId = 'year', 
+        label = 'Year:', 
+        choices = unique(states_merged$year),
+        selected = 2010),
+      selectInput(
+        inputId = 'cause', 
+        label = 'Cause of Death:', 
+        choices = unique(states_merged$icd.chapter),
+        selected = "Certain infectious and parasitic diseases"),
+    ),
+    mainPanel(
+      leafletOutput(outputId = 'map', height = 800)
     )
+  )
 )
 
 #shiny app server
 server <- shinyServer(function(input, output, session){
-    map_data <- reactive({
-      filter(states_merged, year == input$year & icd.chapter == input$cause)%>% 
+  map_data <- reactive({
+    filter(states_merged, year == input$year & icd.chapter == input$cause)%>% 
       group_by(icd.chapter) %>% 
       mutate(rank = rank(desc(crude.rate),ties.method = "first"))
-      })
-
-    output$map <- renderLeaflet({
-     #create color palette based on range of Crude.Rate
-      pal <- colorNumeric("Reds", domain=map_data()$crude.rate)
-     #Setting up the pop up text
-      popup_sb <- with(map_data(), 
-                 paste(NAME, '<br>',
-                       "Year: ", year, '<br>',
-                       "Rank: ", rank, '<br>',
-                       "Crude Rate: ", crude.rate ,'<br>',
-                       "Deaths: ", deaths, '<br>',
-                       "Population: ", population))
-      #create map  
-        map_data() %>% 
-        leaflet() %>%
-        addProviderTiles("CartoDB.Positron")%>%
-        setView(-98.483330, 38.712046, zoom = 4) %>% 
-        addPolygons( 
-              fillColor = ~pal(map_data()$crude.rate), #reference map_data() 
-              fillOpacity = 0.7, 
-              weight = 0.2, 
-              smoothFactor = 0.2, 
-              popup = ~popup_sb) %>%
-        addLegend(pal = pal, 
-            values = map_data()$crude.rate, #reference map_data() 
-            position = "bottomright", 
-            title = "Deaths per 100,000 persons")
-    }
-    )
+  })
+  
+  output$map <- renderLeaflet({
+    #create color palette based on range of Crude.Rate
+    pal <- colorNumeric("Reds", domain=map_data()$crude.rate)
+    #Setting up the pop up text
+    popup_sb <- with(map_data(), 
+                     paste(NAME, '<br>',
+                           "Year: ", year, '<br>',
+                           "Rank: ", rank, '<br>',
+                           "Crude Rate: ", crude.rate ,'<br>',
+                           "Deaths: ", deaths, '<br>',
+                           "Population: ", population))
+    #create map  
+    map_data() %>% 
+      leaflet() %>%
+      addProviderTiles("CartoDB.Positron")%>%
+      setView(-98.483330, 38.712046, zoom = 4) %>% 
+      addPolygons( 
+        fillColor = ~pal(map_data()$crude.rate), #reference map_data() 
+        fillOpacity = 0.7, 
+        weight = 0.2, 
+        smoothFactor = 0.2, 
+        popup = ~popup_sb) %>%
+      addLegend(pal = pal, 
+                values = map_data()$crude.rate, #reference map_data() 
+                position = "bottomright", 
+                title = "Deaths per 100,000 persons")
+  }
+  )
 })
 shinyApp(ui = ui, server = server)
 deployApp()
@@ -309,11 +317,12 @@ df_avg_plot %>%
 ```
 
 ```{r}
-#state==c("US","NJ")  | state == 'US'
+#state==c("US","NJ")  | state == 'US'  ###%in% c('NJ','NY','MA')
 #US will stay constant, the other state will be user input give user to select multiple
 
 df_avg_plot <- df_avg %>% 
-  filter(icd.chapter == 'Mental and behavioural disorders', state == 'US' | state %in% c('NJ','NY','MA') )
+  filter(icd.chapter == 'Certain infectious and parasitic diseases' , 
+         (state == 'US' | state %in% c('NJ','NY')) )
 
 # df_avg_plot <- mutate(df_avg_plot, Label = ifelse(year == 2010, state, NA),
 #             state = as.character(state))
@@ -330,19 +339,69 @@ df_avg_plot %>%
 #                                           size=.6))
 ```
 
+
 ```{r}
 df_avg_plot <- df_avg %>%
-  filter(icd.chapter == 'Mental and behavioural disorders', state == 'US' | state %in% c('NJ','NY','MA') )
+  filter(icd.chapter == 'Mental and behavioural disorders', 
+         state == 'US' | state %in% c('NJ','NY','MA') )
 
 p <- df_avg_plot %>%
   ggplot(aes(year, crude.rate), color=state) +
   geom_line(aes(year, crude.rate, color = state), size=.7) +
   theme_minimal() 
 
-ggplotly(p) %>% hide_legend()
+ggplotly(p) 
+# %>% hide_legend()
 ```
 
-```{r}
 
+```{r message=FALSE, warning=FALSE}
+#shiny app UI
+ui <- fluidPage(
+  titlePanel(
+    "Examining Causes of Death Across the US from 1999-2010"
+  ),
+  sidebarLayout(
+    sidebarPanel(
+      selectInput(
+        inputId = 'cause', 
+        label = 'Cause of Death:', 
+        choices = unique(df_avg$icd.chapter),
+        selected = "Certain infectious and parasitic diseases"),
+      selectInput(
+        inputId = 'state', 
+        label = 'State:', 
+        multiple = TRUE,
+        choices = unique(df_avg$state),
+        selected='AL'),
+    ),
+    mainPanel(
+      plotOutput(outputId = 'lineplot')
+    )
+  )
+)
+
+#shiny app server
+server <- shinyServer(function(input, output, session){
+  line_data <- reactive({
+    df_avg %>% 
+      filter(icd.chapter == input$cause, 
+             (state == 'US' | state == input$state) )
+  })
+  
+  output$lineplot <- renderPlot({
+    
+    #create plot
+    ggplot(line_data(), aes(year, crude.rate)) +
+      geom_line(aes(color = state), size=.7) +
+      labs(x= "Year", y = "Crude Rate")+
+      theme_minimal() 
+    
+    #ggplotly(p)
+    #end plot
+  }
+  )
+})
+shinyApp(ui = ui, server = server)
+deployApp()
 ```
-
