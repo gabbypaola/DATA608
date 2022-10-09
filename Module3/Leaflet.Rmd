@@ -1,5 +1,5 @@
 ---
-title: "Untitled"
+title: "DATA608 | Knowledge and Visual Analytics"
 author: "Gabriella Martinez"
 date: "10/5/2022"
 output: html_document
