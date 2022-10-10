@@ -70,7 +70,7 @@ ui <- dashboardPage(
                 sidebarLayout(
                   sidebarPanel(
                     selectInput(
-                      inputId = 'cause', 
+                      inputId = 'cause2', 
                       label = 'Cause of Death:', 
                       choices = unique(df_avg$icd.chapter),
                       selected = "Certain infectious and parasitic diseases"),
@@ -113,7 +113,7 @@ server <- function(input, output){
   
   #line begin
   line_data <- reactive({
-      filter(df_avg, icd.chapter == input$cause & 
+      filter(df_avg, icd.chapter == input$cause2 & 
                (state == 'US' | state == input$state)) 
   })
   
