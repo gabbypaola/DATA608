@@ -1,8 +1,11 @@
 library(shiny)
 library(shinydashboard)
 library(dplyr)
-library(plotly)
 library(ggplot2)
+library(leaflet)
+library(tigris)
+library(sf)
+
 
 #begin load data
 df <- read.csv("https://raw.githubusercontent.com/charleyferrari/CUNY_DATA_608/master/module3/data/cleaned-cdc-mortality-1999-2010-2.csv")
@@ -21,6 +24,26 @@ df_avg <- df %>%
   select(icd.chapter,state,year,crude.rate) %>% 
   rbind(natl_avg)
 
+### begin map data
+states <- tigris::states(cb=T)
+
+#change column name on shapefile for left join with death data
+states <- states %>% rename("state" = "STUSPS")
+
+#transform states shapefile to resolve error message
+states <- st_transform(states, 4326)
+
+#need to use geo_join in order to get sf type dataframe for leaflet
+states_merged <- geo_join(data_frame=df, spatial_data= states, 
+                          by_df= "state", by_sp= "state", by = NULL, 
+                          how = "inner")
+
+#remove NA
+states_merged <- subset(states_merged, !is.na(crude.rate))
+
+
+### end map data
+
 # end load data
 
 ui <- dashboardPage(
@@ -28,6 +51,7 @@ ui <- dashboardPage(
   dashboardSidebar(
     sidebarMenu(
       menuItem("Question 1 Bar Graph", tabName = "question1bar"),
+      menuItem("Question 1 Map", tabName = "question1map"),
       menuItem("Question 2 Line Graph", tabName = "question2")
     )
   ),
@@ -62,6 +86,31 @@ ui <- dashboardPage(
                 )
               )
       ),
+      tabItem("question1map", 
+              fluidPage(
+                titlePanel(
+                  "Examining Causes of Death Across the US from 1999-2010"
+                ),
+                sidebarLayout(
+                  sidebarPanel(
+                    selectInput(
+                      inputId = 'yearMap', 
+                      label = 'Year:', 
+                      choices = unique(states_merged$year),
+                      selected = 2010),
+                    selectInput(
+                      inputId = 'causeMap', 
+                      label = 'Cause of Death:', 
+                      choices = unique(states_merged$icd.chapter),
+                      selected = "Certain infectious and parasitic diseases"),
+                  ),
+                  mainPanel(
+                    leafletOutput(outputId = 'map', height = 800)
+                  )
+                )
+       
+              )
+      ),
       tabItem("question2",
               fluidPage(
                 titlePanel(
@@ -70,7 +119,7 @@ ui <- dashboardPage(
                 sidebarLayout(
                   sidebarPanel(
                     selectInput(
-                      inputId = 'cause2', 
+                      inputId = 'cause2', #inputID cannot be dupes of previously used inputIDs, otherwise filter won't work properly
                       label = 'Cause of Death:', 
                       choices = unique(df_avg$icd.chapter),
                       selected = "Certain infectious and parasitic diseases"),
@@ -111,16 +160,53 @@ server <- function(input, output){
   )
   #bar end
   
+  #map begin
+  map_data <- reactive({
+    filter(states_merged, year == input$yearMap & icd.chapter == input$causeMap)%>% 
+      group_by(icd.chapter) %>% 
+      mutate(rank = rank(desc(crude.rate),ties.method = "first"))
+  })
+  
+  output$map <- renderLeaflet({
+    #create color palette based on range of Crude.Rate
+    pal <- colorNumeric("Reds", domain=map_data()$crude.rate)
+    #Setting up the pop up text
+    popup_sb <- with(map_data(), 
+                     paste("State: ", NAME, '<br>',
+                           "Year: ", year, '<br>',
+                           "Crude Rate: ", crude.rate ,'<br>',
+                           '<br>',
+                           "Rank: ", rank, '<br>'))
+    #create map  
+    map_data() %>% 
+      leaflet() %>%
+      addProviderTiles("CartoDB.Positron")%>%
+      setView(-98.483330, 38.712046, zoom = 4) %>% 
+      addPolygons( 
+        fillColor = ~pal(map_data()$crude.rate), #reference map_data() 
+        fillOpacity = 0.7, 
+        weight = 0.2, 
+        smoothFactor = 0.2, 
+        popup = ~popup_sb) %>%
+      addLegend(pal = pal, 
+                values = map_data()$crude.rate, #reference map_data() 
+                position = "bottomright", 
+                title = "Deaths per 100,000 persons")
+  }
+  )
+  #map end 
+  
   #line begin
   line_data <- reactive({
       filter(df_avg, icd.chapter == input$cause2 & 
-               (state == 'US' | state == input$state)) 
+               (state == 'US' | state == input$state))
   })
   
   output$lineplot <- renderPlot({
     ggplot(line_data(), aes(x=line_data()$year,
-                            y=line_data()$crude.rate)) +
-      geom_line(aes(color = state)) +
+                            y=line_data()$crude.rate, 
+                            group=line_data()$state)) +
+      geom_line(aes(color= state), size=1) +
       labs(x= "Year", y = "Crude Rate")+
       theme_minimal() 
   }
