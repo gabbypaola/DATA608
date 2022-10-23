@@ -79,7 +79,7 @@ fig.update_layout(barmode='stack', width=900, height=800, uniformtext_minsize=8,
 fig.update_xaxes(linewidth=.5, linecolor='lightgrey')
 fig.update_yaxes(linewidth=.2, linecolor='lightgrey', gridwidth=.2 ,gridcolor='lightgrey')
 
-for r, c in zip(df_plot2['health'].unique(), rating_color):
+for r, c in zip(df_plot2['health'].unique(), rating_color): #loop needed to plot colors for each group
     df_plot = df_plot2[df_plot2['health'] == r]
     fig.add_trace(
         go.Bar(
