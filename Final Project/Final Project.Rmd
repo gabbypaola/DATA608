@@ -1,0 +1,19 @@
+---
+title: "Untitled"
+author: "Gabriella Martinez"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+library(readxl)
+library(readr)
+```
+
+```{r}
+
+```
+
+
+^[https://www.cdc.gov/drugoverdose/fatal/dashboard/index.html]
+^[https://wonder.cdc.gov/controller/datarequest/D76]
