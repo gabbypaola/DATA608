@@ -1,0 +1,47 @@
+<html>
+<head><title>DATA608 Module 5</title></head>
+<body>
+<h3>DATA608 Module 5</h3>
+<h5>Gabriella Martinez</h5>
+<h5>Due Date: 11/6/2022</h5>
+    <p>Assignment: </p>
+    <p>Create a function to reverse any word that you type in. <br> 
+        This can be typed into either an input box or an alert box, <br> 
+        and then print the result in a box or on the webpage.</p>
+    <br>
+        <p>Enter a word or phrase below to see it reversed: </p>
+        <!-- creates input box -->
+    <p>
+        <input type="text" id="word" />
+    </p>
+        <!-- end creates input box -->
+        <!-- creates button and triggers event through click -->
+    <p>
+        <button id="btn">
+            Reverse it!
+        </button>
+    </p>
+        <!-- end creates button and triggers event through click -->
+        <!-- displays the result -->
+    <p>
+        <output id="result" />
+    </p>
+        <!-- end display result -->
+</body>
+<script>
+    
+    // begin function
+    function string_Reverse(){
+
+        var x=document.getElementById("word").value;
+
+      var y=  x.split("").reverse().join("");
+    document.getElementById("result").innerText=y;
+
+    }
+    // end function
+    
+    // calls the function after registering the click
+    document.getElementById("btn").addEventListener("click", string_Reverse);
+</script>
+</html>
