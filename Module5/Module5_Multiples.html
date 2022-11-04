@@ -1,0 +1,49 @@
+<html>
+<head><title>DATA608 Module 5</title></head>
+<body>
+
+<h3>DATA608 Module 5</h3>
+<h5>Gabriella Martinez</h5>
+<h5>Due Date: 11/6/2022</h5>
+    <p>Assignment: </p>
+    <p>Create a function that takes an input number, <br> 
+    and prints a table with the first 20 multiples of the <br> 
+    number, in order of 5x4.</p>
+    <br>
+    <p>Enter a number to see its first 20 multiples: </p>
+        <!-- creates input box -->
+    <p>
+    <input type="num" id="number"/>
+    </p>
+        <!-- end creates input box -->
+        <!-- creates button and on click call to function -->
+    <p>
+    <button onclick="multiples()">
+    Show me the multiples!
+    </button>
+    </p>
+    <p id="mult"></p>
+
+        <!-- end creates button and on click call to function -->
+
+
+</body>
+<script>
+function multiples() {
+  var y = document.getElementById("number").value;
+  document.getElementById("mult").innerHTML = calc_multiples(y);
+  
+}
+  
+function calc_multiples(n) {
+ var nm = 
+ "<table><tr><td>" + 1*n + "</td><td>" + 2*n + "</td><td>" + 3*n + "</td><td>" + 4*n + 
+ "</td></tr><tr><td>" + 5*n + "</td><td>" + 6*n + "</td><td>" + 7*n + "</td><td>" + 8*n + 
+ "</td></tr><tr><td>" + 9*n + "</td><td>" + 10*n + "</td><td>" + 11*n + "</td><td>" + 12*n + 
+ "</td></tr><tr><td>" + 13*n+ "</td><td>" + 14*n+ "</td><td>" + 15*n + "</td><td>" + 16*n + 
+ "</td></tr><tr><td>" + 17*n + "</td><td>" + 18*n + "</td><td>" + 19*n + "</td><td>" + 20*n + 
+ "</td></tr></table>"
+ return(nm)
+}
+</script>
+</html>
