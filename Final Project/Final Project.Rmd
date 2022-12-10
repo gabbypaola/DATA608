@@ -1,19 +1,512 @@
 ---
-title: "Untitled"
+title: "DATA608 | Knowledge and Visual Analytics"
 author: "Gabriella Martinez"
-date: "`r Sys.Date()`"
-output: html_document
+date: "12/7/2022"
+output:
+      html_document:
+        toc: yes
+        toc_float: yes
+        theme: yeti
+        highlight: kate
+        font-family: "Arial"
+        code_folding: show
 ---
 
-```{r}
+# Load Packages
+```{r message=FALSE, warning=FALSE}
 library(readxl)
 library(readr)
+library(rvest)
+library(dplyr)
+library(ggplot2)
+library(ggthemes)
+library(extrafont)
 ```
 
-```{r}
+# Load Data
+## Unemployment Weekly Benefit Amounts
+
+The unemployment maximum weekly benefit amounts were pulled from [Saving to Invest](www.savingtoinvest.com/maximum-weekly-unemployment-benefits-by-state/) in conjunction with the [Wayback Machine](https://web.archive.org/).  
+
+Saving to Invest contains the list of unemployment insurance benefit amount/compensation rates by state and are pulled from each respective state website.  
+
+The Federal-State Unemployment Compensation (UC) program is a partnership based upon federal law, but administered by state employees under state laws. Thus each state designs its own UC program within the guidelines of the federal requirements, which includes setting the benefit amount along with eligibility and disqualification provisions. There are significant differences between states so please visit the state unemployment for detailed rules and benefit calculation scenarios.  
+  
+The Internet Archive or Wayback Machine, is a 501(c)(3) non-profit that's building a digital library of Internet sites and other cultural artifacts in digital form. Like a paper library, it provides free access to researchers, historians, scholars, people with print disabilities, and the general public. It is their mission is to provide Universal Access to All Knowledge.
+
+[2015](https://web.archive.org/web/20150913042755/https://savingtoinvest.com/maximum-weekly-unemployment-benefits-by-state/)  
+[2016](https://web.archive.org/web/20161002140631/https://savingtoinvest.com/maximum-weekly-unemployment-benefits-by-state/)  
+[2019](https://web.archive.org/web/20190903222914/https://savingtoinvest.com/maximum-weekly-unemployment-benefits-by-state/)  
+[2020](https://web.archive.org/web/20201111210711/https://www.savingtoinvest.com/maximum-weekly-unemployment-benefits-by-state/)  
+
+```{r message=FALSE, warning=FALSE}
+#load unemployment benefits data
+
+benefits15 <-read.csv("C:\\Users\\gabri\\OneDrive\\Documents\\CUNY SPS\\DATA_608\\DATA608\\Final Project\\UnempBenefits2015.csv")
+
+benefits16 <-read.csv("C:\\Users\\gabri\\OneDrive\\Documents\\CUNY SPS\\DATA_608\\DATA608\\Final Project\\UnempBenefits2016.csv")
+
+benefits19 <-read.csv("C:\\Users\\gabri\\OneDrive\\Documents\\CUNY SPS\\DATA_608\\DATA608\\Final Project\\UnempBenefits2019.csv")
+
+benefits20 <-read.csv("C:\\Users\\gabri\\OneDrive\\Documents\\CUNY SPS\\DATA_608\\DATA608\\Final Project\\UnempBenefits2020.csv")
+
+benefits15 <- benefits15 %>% select("State", "X2014.2015.Max.Weekly.Amt", "Year")
+benefits16 <- benefits16 %>% select("State", "Max..Weekly.Benefit.Amount", "Year")
+benefits19 <- benefits19 %>% select("State", "Max..Weekly.Benefit.Amount", "Year")
+benefits20 <- benefits20 %>% select("State", "Max..Weekly.Benefit.Amount", "Year")
+
+colnames(benefits15)[2] <- "Max..Weekly.Benefit.Amount"
+
+benefits <- rbind(benefits15, benefits16, benefits19, benefits20)
+
+colnames(benefits)[2] <- "MaxWeeklyBenefits"
+```
+
+
+## Unemployment Rates
+
+[2015](https://web.archive.org/web/20160309035527/http://www.bls.gov/lau/lastrk15.htm)  
+[2016](https://web.archive.org/web/20170502003415/https://www.bls.gov/lau/lastrk16.htm)  
+[2019](https://www.bls.gov/lau/lastrk19.htm)  
+[2020](https://www.bls.gov/lau/lastrk20.htm)
+
+```{r message=FALSE, warning=FALSE}
+#load unemployment rate data
+
+rates15 <-read.csv("C:\\Users\\gabri\\OneDrive\\Documents\\CUNY SPS\\DATA_608\\DATA608\\Final Project\\UnemploymentRates2015.csv")
+
+rates16 <-read.csv("C:\\Users\\gabri\\OneDrive\\Documents\\CUNY SPS\\DATA_608\\DATA608\\Final Project\\UnemploymentRates2016.csv")
+
+rates19 <-read.csv("C:\\Users\\gabri\\OneDrive\\Documents\\CUNY SPS\\DATA_608\\DATA608\\Final Project\\UnemploymentRates2019.csv")
+
+rates20 <-read.csv("C:\\Users\\gabri\\OneDrive\\Documents\\CUNY SPS\\DATA_608\\DATA608\\Final Project\\UnemploymentRates2020.csv")
+
+rates <- rbind(rates15,rates16,rates19,rates20)
+```
+
+### Merge `rates` and `benefits` tables
+
+```{r message=FALSE, warning=FALSE}
+unemployment_df <- merge(x=benefits,y=rates,
+                         by.x= c("State","Year"),
+                         by.y= c("State","Year"))
+```
+
+## Election Results
+
+The [Election Data](https://uselectionatlas.org/RESULTS/) was pulled from Dave Leip's Atlas of U.S. Presidential Elections. 
+
+
+^[https://guides.loc.gov/election-statistics/presidential-elections]
+
+```{r message=FALSE, warning=FALSE}
+#load election data 
+
+# needed for 2015 data
+election12 <- read.csv("C:\\Users\\gabri\\OneDrive\\Documents\\CUNY SPS\\DATA_608\\DATA608\\Final Project\\Election2012.csv")
+
+election16 <-read.csv("C:\\Users\\gabri\\OneDrive\\Documents\\CUNY SPS\\DATA_608\\DATA608\\Final Project\\Election2016.csv")
+
+election20 <-read.csv("C:\\Users\\gabri\\OneDrive\\Documents\\CUNY SPS\\DATA_608\\DATA608\\Final Project\\Election2020.csv")
+```
+
+[2012 Battleground States](https://www.politico.com/2012-election/swing-state/)  
+
+Swing states, also known as battleground states, are states that could “swing” to either Democratic or Republican candidates depending on the election. Because of their potential to be won by either candidate, political parties often spend a disproportionate amount of time and campaign resources on winning these states. ^[https://usafacts.org/articles/what-are-the-current-swing-states-and-how-have-they-changed-over-time/?utm_source=google&utm_medium=cpc&utm_campaign=ND-Elections&gclid=CjwKCAiAhKycBhAQEiwAgf19erVpBIcpduzLqacFnhYybgBM_hHDb9savQEByz143ymBmWdqnlDLzBoCHlgQAvD_BwE]  
+Battleground states are states whose electoral history make them less predictable and typically feature comparatively close contests in terms of polling data and election results.^[https://ballotpedia.org/Presidential_battleground_states,_2016]
+
+```{r message=FALSE, warning=FALSE}
+# needed for 2015 data to show how the state voted in previous election 
+election12 <- election12 %>% select("State", "Obama", "Romney", "Other")
+
+election12$Obama = as.numeric(sub("%", "",election12$Obama))
+election12$Romney = as.numeric(sub("%", "",election12$Romney))
+election12$Other = as.numeric(sub("%", "",election12$Other))
+
+election12$StateResult <- colnames(select(election12, "Obama", "Romney",
+            "Other"))[max.col(select(election12, "Obama", "Romney","Other"))]
+
+battleground_states12 =  data.frame("State"=c("Nevada","Colorado","Iowa",
+                                              "Wisconsin", "Ohio","Virginia", 
+                                              "North Carolina", "Florida",
+                                              "New Hampshire"))
+
+election12$SwingState <- ifelse(election12$State %in% 
+                                  battleground_states12$State, "Yes", "No")
+
+election12$StateElectedParty <- ifelse(election12$StateResult == "Obama", 
+                                       "Democrat", "Republican")
+
+#using 2015 as year to add standing president 
+election12$Year = 2015
+
+election12$ElectionResult = "Democrat"
+
+election12 <- election12 %>% select("State", "Year", "StateResult", 
+                                    "SwingState", "StateElectedParty", 
+                                    "ElectionResult")
 
 ```
 
 
-^[https://www.cdc.gov/drugoverdose/fatal/dashboard/index.html]
-^[https://wonder.cdc.gov/controller/datarequest/D76]
+[2016 Battleground States](https://ballotpedia.org/Presidential_battleground_states,_2016)
+
+```{r message=FALSE, warning=FALSE}
+election16 <- election16 %>% select("State", "Clinton", "Trump", "Johnson",
+                                    "Other")
+#str(election16)
+
+election16$Clinton = as.numeric(sub("%", "",election16$Clinton))
+election16$Trump = as.numeric(sub("%", "",election16$Trump))
+election16$Johnson = as.numeric(sub("%", "",election16$Johnson))
+election16$Other = as.numeric(sub("%", "",election16$Other))
+
+election16$StateResult <- colnames(select
+                                   (election16,"Clinton", "Trump", "Johnson", 
+                                     "Other"))[max.col(select(election16, 
+                                                            "Clinton", "Trump", 
+                                                            "Johnson","Other"))]
+
+battleground_states16 = data.frame("State"=c("Arizona",
+                                             "Nevada","Colorado","Iowa",
+                                             "Wisconsin","Michigan","Ohio",
+                                             "Pennsylvania","Virginia",
+                                             "North Carolina", "Florida",
+                                             "New Hampshire"))
+
+election16$SwingState <- ifelse(election16$State %in% 
+                                  battleground_states16$State, "Yes", "No")
+
+election16$StateElectedParty <- ifelse(election16$StateResult == "Trump", 
+                                       "Republican","Democrat")
+
+election16$Year = 2016
+
+election16$ElectionResult = "Republican"
+
+election16 <- election16 %>% select("State", "Year", "StateResult", 
+                                    "SwingState", "StateElectedParty", 
+                                    "ElectionResult")
+
+election16$State <- sub("D. C.", "District of Columbia",election16$State)
+
+#2019 standing president
+standing_pres19 <- election16
+
+#changing year to 2019 to reflect president elect for that year
+standing_pres19["Year"]=2019
+```
+
+[2020 Battleground States](https://ballotpedia.org/Presidential_battleground_states,_2020#Battleground_states)
+
+```{r message=FALSE, warning=FALSE}
+election20 <- election20 %>% select("State", "Biden", "Trump", "Other")
+
+election20$Biden = as.numeric(sub("%", "",election20$Biden))
+election20$Trump = as.numeric(sub("%", "",election20$Trump))
+election20$Other = as.numeric(sub("%", "",election20$Other))
+
+election20$StateResult <- colnames(
+  select(election20, "Biden", "Trump", "Other"))[max.col(
+    select(election20, "Biden", "Trump", "Other"))]
+
+battleground_states20 = data.frame("State"=c("Arizona","Florida",
+                                             "Georgia","Iowa","Michigan", 
+                                             "Minnesota","Nevada",
+                                             "New Hampshire","North Carolina",
+                                             "Ohio","Pennsylvania","Texas",
+                                             "Wisconsin"))
+
+election20$SwingState <- ifelse(election20$State %in% 
+                                      battleground_states20$State, "Yes", "No")
+
+election20$StateElectedParty <- ifelse(election20$StateResult == "Trump", 
+                                       "Republican","Democrat")
+
+election20$Year = 2020
+
+election20$ElectionResult = "Democrat"
+
+election20 <- election20 %>%  select("State", "Year", "StateResult", 
+                                     "SwingState", "StateElectedParty", 
+                                     "ElectionResult")
+
+election20$State <- sub("D. C.", "District of Columbia",election20$State)
+```
+
+### Merge `unemployment_df` with `election`
+
+```{r message=FALSE, warning=FALSE}
+#merge all election data
+election <- rbind(election12, election16, standing_pres19, election20)
+
+#merge `unemployment_df` with `election`
+unemp_elec_df <- unemployment_df %>% full_join(election,
+                           by= c("State","Year"))
+
+colnames(unemp_elec_df)[4] <- "UnemploymentRate"
+
+colnames(unemp_elec_df)[5] <- "UnemploymentRank"
+```
+
+### Add Census Regions and merge
+
+[Census Regions and Divisions of the United States](https://www2.census.gov/geo/pdfs/maps-data/maps/reference/us_regdiv.pdf)
+
+```{r message=FALSE, warning=FALSE}
+regions <- read.csv("https://raw.githubusercontent.com/cphalpert/census-regions/master/us%20census%20bureau%20regions%20and%20divisions.csv")
+
+regions <- regions %>% select("State","State.Code","Region")
+
+unemp_elec_df <- unemp_elec_df %>% full_join(regions, by="State")
+```
+
+# Static Visualizations
+
+## Rates vs. Benefit Amounts
+
+^[https://rdrr.io/github/joon-e/allespaletti/src/R/politics.R]
+```{r message=FALSE, warning=FALSE, fig.align = 'center'}
+unemp_elec_df %>% filter(Year==2015) %>% 
+  ggplot(aes(x=UnemploymentRate, y=MaxWeeklyBenefits, color=StateElectedParty)) +
+  geom_point(size= 2) +
+  geom_smooth(method="lm",se = FALSE)+
+  scale_color_manual(values= c("Democrat" = "#4575b4",
+                               "Republican" = "#d73027")) +
+  # scale_color_manual(values= c("Democrat" = "#000E89",
+  #                              "Republican" = "#C91602"))+
+  # scale_color_manual(values= c("Democrat" = "#3885D3",
+  #                              "Republican" = "#E02E44"))+
+  guides(color = guide_legend(title = "Elected Party")) +
+  labs(title="Unemployment Rate vs. Unemployment Weekly Benefit Amounts",
+       subtitle= "2015",
+       x= "Unemployment Rate", 
+       y = "Weekly Benefit Amount")+
+  theme(plot.title = element_text(size = 12, color = "#000500"),
+        plot.subtitle = element_text(size = 9, color = "#484e4c"),
+        panel.grid.minor.y = element_blank())
+```
+
+## Unemployment Benefit Amounts
+
+```{r message=FALSE, warning=FALSE}
+unemp_elec_df %>% filter(Year==2015) %>% 
+  group_by(StateElectedParty, Region) %>% 
+  summarise(AvgBenefits = mean(MaxWeeklyBenefits))
+```
+
+^[https://www.learnbyexample.org/r-bar-plot-ggplot2/#:~:text=For%20grouped%20bars%2C%20there%20is,to%20be%20larger%20than%20width.]
+```{r message=FALSE, warning=FALSE, fig.align = 'center'}
+unemp_elec_df %>% filter(Year==2015) %>% 
+  group_by(StateElectedParty, Region) %>% 
+  summarise(AvgBenefits = round(mean(MaxWeeklyBenefits),2)) %>% 
+  ggplot(aes(fill=StateElectedParty, y= AvgBenefits, 
+             x=reorder(Region, AvgBenefits)))+
+  geom_col(stat="identity", width=0.7,
+           position=position_dodge(width = 0.8))+ #,  alpha=0.7 position = "dodge" 
+  # geom_text(
+  #   aes(label = AvgBenefits),
+  #   colour = "black", size = 3,
+  #   vjust = 0.5, hjust=-0.1 , position = position_dodge(.9)
+  # )+
+  scale_fill_manual(values= c("Democrat" = "#4575b4",
+                               "Republican" = "#d73027"))+
+   # scale_fill_manual(values= c("Democrat" = "#000E89",
+   #                             "Republican" = "#C91602"))+
+  # scale_fill_manual(values= c("Democrat" = "#3885D3",
+  #                              "Republican" = "#E02E44"))+
+  guides(fill=guide_legend(title="Elected Party"))+
+  coord_flip()+
+  labs(title="Regional Previous Election Results and Average Unemployment Benefits",
+       subtitle= "2015 Amounts",
+       y= "Average Weekly Benefits", 
+       x = "Region")+
+  theme(plot.title = element_text(size = 12, color = "#000500"),
+        plot.subtitle = element_text(size = 9, color = "#484e4c"),
+        panel.grid.minor = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+
+```{r fig.height=8, fig.width=10, message=FALSE, warning=FALSE, fig.align = 'center'}
+
+
+unemp_elec_df %>% filter(Year==2015) %>% 
+  group_by(StateElectedParty, Region) %>%
+  mutate(avg.benefit = mean(MaxWeeklyBenefits)) %>% 
+  ggplot(aes(x=reorder(State,MaxWeeklyBenefits),y=MaxWeeklyBenefits, 
+             color=StateElectedParty, 
+             group=StateElectedParty, 
+             fill=StateElectedParty))+
+  facet_wrap(~Region, scales='free_y')+ 
+  geom_col(width= 0.5, colour=NA) +
+  #   geom_text(
+  #   aes(label = MaxWeeklyBenefits),
+  #   colour = "white", size = 3,
+  #   vjust = 0.5, hjust=1.2 , position = position_dodge(.5)
+  # )+
+  scale_fill_manual(values= c("Democrat" = "#4575b4",
+                               "Republican" = "#d73027"))+
+  # scale_fill_manual(values= c("Democrat" = "#000E89",
+  #                              "Republican" = "#C91602"))+
+  theme(axis.line=element_line())+
+  labs(y= "Maximum Weekly Benefits", x = "State")+
+  guides(fill=guide_legend(title="Elected Party"))+
+  coord_flip()+
+  labs(title="Previous Election Results and Average Unemployment Benefits",
+       subtitle= "2015 Amounts",
+       y= "Average Weekly Benefits", 
+       x = "Region")+
+  theme(plot.title = element_text(size = 12, color = "#000500"),
+        plot.subtitle = element_text(size = 9, color = "#484e4c"),
+        panel.grid.minor = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank()) 
+
+```
+
+
+```{r fig.height=8, fig.width=10, message=FALSE, warning=FALSE, fig.align = 'center'}
+
+
+unemp_elec_df %>% filter(Year==2015, SwingState=="Yes") %>% 
+  group_by(StateElectedParty, Region) %>%
+  mutate(avg.benefit = mean(MaxWeeklyBenefits)) %>% 
+  ggplot(aes(x=reorder(State,MaxWeeklyBenefits),y=MaxWeeklyBenefits, 
+             color=StateElectedParty, 
+             group=StateElectedParty, 
+             fill=StateElectedParty))+
+  facet_wrap(~Region, scales='free_y')+ 
+  geom_col(width= 0.5, colour=NA) +
+  #   geom_text(
+  #   aes(label = MaxWeeklyBenefits),
+  #   colour = "white", size = 3,
+  #   vjust = 0.5, hjust=1.2 , position = position_dodge(.5)
+  # )+
+  scale_fill_manual(values= c("Democrat" = "#4575b4",
+                               "Republican" = "#d73027"))+
+  # scale_fill_manual(values= c("Democrat" = "#000E89",
+  #                              "Republican" = "#C91602"))+
+  theme(plot.title = element_text(size = 12, color = "#000500"),
+        plot.subtitle = element_text(size = 9, color = "#484e4c"),
+        panel.grid.minor = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())+
+  labs(title="Previous Election Results and Maximum Unemployment Benefits- Swing States",
+       subtitle= "2015 Amounts",
+       y= "Maximum Weekly Benefits", 
+       x = "State")+
+  guides(fill=guide_legend(title="Elected Party"))+
+  coord_flip()
+```
+
+
+## Unemployment Rates
+
+```{r message=FALSE, warning=FALSE, fig.align = 'center'}
+
+
+unemp_elec_df %>% filter(Year==2015) %>% 
+  group_by(StateElectedParty, Region) %>% 
+  summarise(AvgUnemp = round(mean(UnemploymentRate),2)) %>% 
+  ggplot(aes(fill=StateElectedParty, y= AvgUnemp, 
+             x=reorder(Region, AvgUnemp)))+
+  geom_col(stat="identity", width=0.7,
+           position=position_dodge(width = 0.8))+ #,  alpha=0.7 position = "dodge" 
+  # geom_text(
+  #   aes(label = AvgUnemp),
+  #   colour = "black", size = 3,
+  #   vjust = 0.5, hjust=-0.1 , position = position_dodge(.9))+
+  scale_fill_manual(values= c("Democrat" = "#4575b4",
+                               "Republican" = "#d73027"))+
+   # scale_fill_manual(values= c("Democrat" = "#000E89",
+   #                             "Republican" = "#C91602"))+
+  # scale_fill_manual(values= c("Democrat" = "#3885D3",
+  #                              "Republican" = "#E02E44"))+
+  guides(fill=guide_legend(title="Elected Party"))+
+  labs(title="Previous Election Results and Unemployment Rates",
+       subtitle= "2015 Rates",
+       y= "Average Unemployment Rate", 
+       x = "Region")+
+  coord_flip()+ 
+  theme(plot.title = element_text(size = 12, color = "#000500"),
+        plot.subtitle = element_text(size = 9, color = "#484e4c"),
+        #panel.grid.minor = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+  
+```
+
+
+```{r fig.height=8, fig.width=10, message=FALSE, warning=FALSE, fig.align = 'center'}
+unemp_elec_df %>% filter(Year==2015) %>% 
+  group_by(StateElectedParty, Region) %>%
+  mutate(avg.unemp = mean(UnemploymentRate)) %>% 
+  ggplot(aes(x=reorder(State,UnemploymentRate),y=UnemploymentRate, 
+             color=StateElectedParty, 
+             group=StateElectedParty, 
+             fill=StateElectedParty))+
+  facet_wrap(~Region, scales='free_y')+ 
+  geom_col(width= 0.5, colour=NA) +
+  #   geom_text(
+  #   aes(label = UnemploymentRate),
+  #   colour = "white", size = 3,
+  #   vjust = 0.5, hjust=1.2 , position = position_dodge(.5)
+  # )+
+  scale_fill_manual(values= c("Democrat" = "#4575b4",
+                               "Republican" = "#d73027"))+
+  # scale_fill_manual(values= c("Democrat" = "#000E89",
+  #                              "Republican" = "#C91602"))+
+  theme(axis.line=element_line(),
+        plot.title = element_text(size = 12, color = "#000500"),
+        plot.subtitle = element_text(size = 9, color = "#484e4c"),
+        #panel.grid.minor = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())+
+  labs(title="Previous Election Results and Unemployment Rates",
+       subtitle= "2015 Rates",
+       y= "Average Unemployment Rate", 
+       x = "State")+
+  guides(fill=guide_legend(title="Elected Party"))+
+  coord_flip()
+```
+
+
+```{r fig.height=8, fig.width=10, message=FALSE, warning=FALSE, fig.align = 'center'}
+unemp_elec_df %>% filter(Year==2015, SwingState=="Yes") %>% 
+  group_by(StateElectedParty, Region) %>%
+  mutate(avg.unemp = mean(UnemploymentRate)) %>% 
+  ggplot(aes(x=reorder(State,UnemploymentRate),y=UnemploymentRate, 
+             color=StateElectedParty, 
+             group=StateElectedParty, 
+             fill=StateElectedParty))+
+  facet_wrap(~Region, scales='free_y')+ 
+  geom_col(width= 0.5, colour=NA) +
+  # geom_text(
+  #   aes(label = UnemploymentRate),
+  #   colour = "white", size = 3,
+  #   vjust = 0.5, hjust=1.2 , position = position_dodge(.5)
+  # )+
+  scale_fill_manual(values= c("Democrat" = "#4575b4",
+                               "Republican" = "#d73027"))+
+  # scale_fill_manual(values= c("Democrat" = "#000E89",
+  #                              "Republican" = "#C91602"))+
+  theme(axis.line=element_line(),
+        plot.title = element_text(size = 12, color = "#000500"),
+        plot.subtitle = element_text(size = 9, color = "#484e4c"),
+        # panel.grid.minor = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())+
+  labs(title="Previous Election Results and Unemployment Rates- Swing States",
+       subtitle= "2015 Rates",
+       y= "Average Unemployment Rate", 
+       x = "State")+
+  guides(fill=guide_legend(title="Elected Party"))+
+  coord_flip()
+```
+
+
+<!------- Below is for removing excessive space in Rmarkdown | HTML formatting -------->
+
+<div class="tocify-extend-page" data-unique="tocify-extend-page" style="height: 0;"></div>
