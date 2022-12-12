@@ -13,8 +13,8 @@ d3.csv('ue_industry.csv', data => {
         .y(d => yScale(+d.Agriculture));
 
     d3.select('#answer1')
-	    .append('path')
-	    .attr('d', line(data))
-	    .attr('stroke', '474a4f');
+	.append('path')
+	.attr('d', line(data))
+	.attr('stroke', '474a4f');
 
 });
