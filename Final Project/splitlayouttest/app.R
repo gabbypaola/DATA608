@@ -1,22 +1,26 @@
 library(shiny)
 
 
-u<-shinyUI(fluidPage(
-  titlePanel("title panel"),
-  
-  sidebarLayout(position = "left",
-                sidebarPanel("sidebar panel",
-                             checkboxInput("do2", "Make 2 plots", value = T)
-                ),
-                mainPanel("main panel",
+u<-shinyUI(
+  fluidPage(
+    titlePanel("title panel"),
+    sidebarLayout(position = "left",
+                  sidebarPanel("sidebar panel",
+                               checkboxInput("do2", 
+                                           "Make 2 plots", value = T
+                                           )
+                               ),
+                  mainPanel("main panel",
                           fluidRow(
-                            splitLayout(cellWidths = c("50%", "50%"), 
+                            splitLayout(
+                              cellWidths = c("50%", "50%"), 
                                         plotOutput("plotgraph1"), 
-                                        plotOutput("plotgraph2"))
-                          )
-                )
-  )
-)
+                                        plotOutput("plotgraph2")
+                                        )
+                                   )
+                            )
+                   )
+         )
 )
 
 s<-shinyServer(function(input, output) 

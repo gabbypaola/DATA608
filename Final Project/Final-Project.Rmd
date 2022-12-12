@@ -13,9 +13,7 @@ output:
 ---
 # State Elected Political Parties and Unemployment Data
 
-The purpose of this project was to explore the relationship between the political parties selected in the last two elections (including each year prior to the election) and unemployment rates and benefit amounts across the U.S..  
-
-[Shiny App](https://gabbypaola.shinyapps.io/data608final/) for this project.
+The purpose of this project was to explore the relationship between the political parties selected in the last two elections (including each year prior to the election) and unemployment rates and benefit amounts across the U.S..
 
 # Packages
 ```{r message=FALSE, warning=FALSE}

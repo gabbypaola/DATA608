@@ -1,7 +1,7 @@
 ---
 title: "DATA608 | Knowledge and Visual Analytics"
 author: "Gabriella Martinez"
-date: "12/7/2022"
+date: "12/11/2022"
 output:
       html_document:
         toc: yes
@@ -11,9 +11,9 @@ output:
         font-family: "Arial"
         code_folding: show
 ---
-# State Elected Political Parties and Unemployment Data
+# Unemployment in Red and Blue States
 
-The purpose of this project was to explore the relationship between the political parties selected in the last two elections (including each year prior to the election) and unemployment rates and benefit amounts across the U.S..  
+The purpose of this project was to explore the relationship between the red and blue states in the last two elections (including each year prior to the election) and unemployment rates and benefit amounts across the U.S..  
 
 [Shiny App](https://gabbypaola.shinyapps.io/data608final/) for this project.
 
@@ -121,7 +121,9 @@ election20 <- read.csv("https://raw.githubusercontent.com/gabbypaola/DATA608/mai
 [2012 Battleground States](https://www.politico.com/2012-election/swing-state/)  
 
 Swing states, also known as battleground states, are states that could “swing” to either Democratic or Republican candidates depending on the election. Because of their potential to be won by either candidate, political parties often spend a disproportionate amount of time and campaign resources on winning these states. ^[https://usafacts.org/articles/what-are-the-current-swing-states-and-how-have-they-changed-over-time/?utm_source=google&utm_medium=cpc&utm_campaign=ND-Elections&gclid=CjwKCAiAhKycBhAQEiwAgf19erVpBIcpduzLqacFnhYybgBM_hHDb9savQEByz143ymBmWdqnlDLzBoCHlgQAvD_BwE]  
-Battleground states are states whose electoral history make them less predictable and typically feature comparatively close contests in terms of polling data and election results.^[https://ballotpedia.org/Presidential_battleground_states,_2016]
+Battleground states are states whose electoral history make them less predictable and typically feature comparatively close contests in terms of polling data and election results.^[https://ballotpedia.org/Presidential_battleground_states,_2016]  
+
+Swing states for each election (2012, 2016, and 2020) were added to add an additional variable on which to split the data up and provide additional context to the data. 
 
 ```{r message=FALSE, warning=FALSE}
 # needed for 2015 data to show how the state voted in previous election 
@@ -258,7 +260,7 @@ colnames(unemp_elec_df)[5] <- "UnemploymentRank"
 
 ### Add Census Regions and merge
 
-[Census Regions and Divisions of the United States](https://www2.census.gov/geo/pdfs/maps-data/maps/reference/us_regdiv.pdf)
+[Census Regions and Divisions of the United States](https://www2.census.gov/geo/pdfs/maps-data/maps/reference/us_regdiv.pdf) were added to be able to aggregate the 50 states and the District of Columbia into buckets to create synthesized visualizations by region and add a level of context. 
 
 ```{r message=FALSE, warning=FALSE}
 regions <- read.csv("https://raw.githubusercontent.com/cphalpert/census-regions/master/us%20census%20bureau%20regions%20and%20divisions.csv")
@@ -277,11 +279,12 @@ election_result_df <- unemp_elec_df %>% filter(Year %in% c(2016,2020))
 
 # Static Visualizations
 
+A scatterplot was created to look into the relationship between unemployment rates and benefit amounts with colors distinguishing political parties by state for the years 2015, 2016, 2019, and 2020. The remaining visualizations were bar graphs starting with the aggregated data by Regional division as designated by the US Census. The small multiples concept was then used to provide a drill down of both unemployment rates and weekly benefit amounts for each state using `facet_wrap`.  
+
+The shiny app linked above shows the pre-election data side by side to the election data to compare and contrast the 2016 and 2020 election results by both region and state to the previous election results (standing political party).
+
 ## Rates vs. Benefit Amounts
 
-
-^[https://rdrr.io/github/joon-e/allespaletti/src/R/politics.R]  
-^[https://flowingdata.com/2017/06/12/politics-of-religious-leaders/]
 ```{r message=FALSE, warning=FALSE, fig.align = 'center'}
 unemp_elec_df %>% filter(Year==2015) %>% 
   ggplot(aes(x=UnemploymentRate, y=MaxWeeklyBenefits, color=StateElectedParty)) +
@@ -346,8 +349,6 @@ unemp_elec_df %>% filter(Year==2015) %>%
 
 
 ```{r fig.height=8, fig.width=10, message=FALSE, warning=FALSE, fig.align = 'center'}
-
-
 unemp_elec_df %>% filter(Year==2015) %>% 
   group_by(StateElectedParty, Region) %>%
   mutate(avg.benefit = mean(MaxWeeklyBenefits)) %>% 
@@ -379,13 +380,10 @@ unemp_elec_df %>% filter(Year==2015) %>%
         panel.grid.minor = element_blank(),
         panel.grid.major.y = element_blank(),
         panel.grid.minor.y = element_blank()) 
-
 ```
 
 
 ```{r fig.height=8, fig.width=10, message=FALSE, warning=FALSE, fig.align = 'center'}
-
-
 unemp_elec_df %>% filter(Year==2015, SwingState=="Yes") %>% 
   group_by(StateElectedParty, Region) %>%
   mutate(avg.benefit = mean(MaxWeeklyBenefits)) %>% 
@@ -406,7 +404,7 @@ unemp_elec_df %>% filter(Year==2015, SwingState=="Yes") %>%
   #                              "Republican" = "#C91602"))+
   theme(plot.title = element_text(size = 12, color = "#000500"),
         plot.subtitle = element_text(size = 9, color = "#484e4c"),
-        panel.grid.minor = element_blank(),
+        #panel.grid.minor = element_blank(),
         panel.grid.major.y = element_blank(),
         panel.grid.minor.y = element_blank())+
   labs(title="Previous Election Results and Maximum Unemployment Benefits- Swing States",
@@ -488,9 +486,6 @@ unemp_elec_df %>% filter(Year==2015) %>%
   coord_flip()
 ```
 
-
-
-
 ```{r fig.height=8, fig.width=10, message=FALSE, warning=FALSE, fig.align = 'center'}
 unemp_elec_df %>% filter(Year==2015, SwingState=="Yes") %>% 
   group_by(StateElectedParty, Region) %>%
@@ -524,6 +519,25 @@ unemp_elec_df %>% filter(Year==2015, SwingState=="Yes") %>%
   coord_flip()
 ```
 
+# What & Why
+
+```{r}
+str(unemp_elec_df)
+```
+
+From the scatter plot above for the year 2015 it can be seen that red states (from the 2012 election) have higher unemployment rates provide lower unemployment benefit amounts. Blue states also have a slightly negative relationship however there are a few blue states that provide higher unemployment benefit amounts than red states. 
+
+All states in the northeast region voted Democrat in the 2012 election and on average have the highest 2015 unemployment benefits in comparison to the rest of the United States regions. Massachusetts, New Jersey, and Connecticut are the top three states in the northeast with the highest weekly benefit amounts with amounts close to and exceeding 600 dollars a week. Surprisingly, New York is the state with the 2nd lowest unemployment benefit amounts followed by Maine with the lowest of all northeastern states hovering around 400 dollars a week. Another notable takeaway from the 2015 unemployment benefit amounts was the amount for Minnesota (voted Democrat in 2012) which is the only state in the Midwest region with well over 600 dollars a week. The remaining states in the region provide around the 400 dollar amount to their unemployment benefit recipients.  
+
+The region with the highest unemployment rate in 2015 is the South with the majority of the states that voted Republican in the 2012 election having a higher unemployment amount than those that voted Democrat. While the Northeast may provide the highest average unemployment benefit amounts in 2015, their unemployment rate was third out of the four regions with a rate just below 5%. The region with the lowest unemployment rate is the midwest. The south had a number of states including D.C. with unemployment rates very close to the 7% mark, most of which voted Republican in the 2012 election.
+
+# Future Improvements
+
+It would be interesting to add additional features to the data to understand the unemployment amounts and unemployment rates. Some data that would be insightful to the weekly benefit amounts would be cost of living, poverty rates, medicare rates and TANF (temporary rental assistance for needy families) rates. Adding demographic and population density data would be beneficial for further insight into the unemployment rates.  
+
+Visualizations: overlaying the tick marks over the bars would provide better visibility, adding a tool tip to the bar graphs for precise data, and using a different font to elevate the aesthetic of the graphs.  
+
+Shiny Dashboard: Fixing the State level graphs to show the facet wrapped plots and adding tool tips. 
 
 <!------- Below is for removing excessive space in Rmarkdown | HTML formatting -------->
 
